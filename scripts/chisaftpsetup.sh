@@ -171,10 +171,11 @@ ssl_enable=NO
 #
 # Uncomment this to indicate that vsftpd use a utf8 filesystem.
 #utf8_filesystem=YESEOF
+EOF
 
- mkdir -p /etc/vsftpd_user_conf
+mkdir -p /etc/vsftpd_user_conf
 
- cat << 'EOF' > /etc/vsftpd_user_conf/alice     
+cat << 'EOF' > /etc/vsftpd_user_conf/alice     
 write_enable=YES
 download_enable=YES
 EOF
@@ -184,10 +185,10 @@ write_enable=NO
 download_enable=YES
 EOF
 
- echo "eiri" > /etc/vsftpd.user_list
+echo "eiri" > /etc/vsftpd.user_list
 
-  chmod 555 /var/run/vsftpd/empty
+chmod 555 /var/run/vsftpd/empty
 
-   grep -qxF '/usr/sbin/nologin' /etc/shells || echo '/usr/sbin/nologin' >> /etc/shells
+grep -qxF '/usr/sbin/nologin' /etc/shells || echo '/usr/sbin/nologin' >> /etc/shells
 
-    service vsftpd restart || /etc/init.d/vsftpd restart 
+service vsftpd restart || /etc/init.d/vsftpd restart 
