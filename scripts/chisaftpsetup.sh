@@ -5,9 +5,9 @@ chmod 777 /var/wired/data
 
 useradd -d /var/wired/data -s /usr/sbin/nologin alice
 echo "alice:alice123" | chpasswd
-seradd -d /var/wired/data -s /usr/sbin/nologin mika 
-cho "mika:mika123" | chpasswd
-seradd -d /var/wired/data -s /usr/sbin/nologin eiri
+useradd -d /var/wired/data -s /usr/sbin/nologin mika 
+echo "mika:mika123" | chpasswd
+useradd -d /var/wired/data -s /usr/sbin/nologin eiri
 echo "eiri:eiri123" | chpasswd
 
 cat << 'EOF' > /etc/vsftpd.conf     

@@ -1,4 +1,6 @@
-## Configure Nodes 
+## Configure Nodes
+
+prefix ip = '10.85.x.x'
 ### Lain
 ```
 auto eth0
@@ -12,59 +14,59 @@ iptables -A FORWARD -i eth0 -m state --state ESTABLISHED,RELATED -j ACCEPT
 
 auto eth1
 iface eth1 inet static
-address 10.10.1.1
+address 10.85.1.1
 netmask 255.255.255.0
 
 auto eth2
 iface eth2 inet static
-address 10.10.2.1
+address 10.85.2.1
 netmask 255.255.255.0
 
 auto eth3
 iface eth3 inet static
-address 10.10.3.1
+address 10.85.3.1
 netmask 255.255.255.0
 ```
 ### Alice 
 ```
 auto eth0
 iface eth0 inet static
-address 10.10.1.2
+address 10.85.1.2
 netmask 255.255.255.0
-gateway 10.10.1.1
+gateway 10.85.1.1
 ```
 ### Mika
 ```
 auto eth0
 iface eth0 inet static
-address 10.10.1.3 # Perhatikan angkanya.
+address 10.85.1.3 # Perhatikan angkanya.
 netmask 255.255.255.0
-gateway 10.10.1.1
+gateway 10.85.1.1
 ```
 ### Chisa
 ```
 auto eth0
 iface eth0 inet static
-address 10.10.2.2
+address 10.85.2.2
 netmask 255.255.255.0
-gateway 10.10.2.1
+gateway 10.85.2.1
 ```
 ### Knights
 ```
 auto eth0
 iface eth0 inet static
-address 10.10.2.2
+address 10.85.2.2
 netmask 255.255.255.0
-gateway 10.10.2.1
+gateway 10.85.2.1
 ```
 
 ### Eiri 
 ```
 auto eth0
 iface eth0 inet static
-address 10.10.3.2
+address 10.85.3.2
 netmask 255.255.255.0
-gateway 10.10.3.1
+gateway 10.85.3.1
 ```
 ## NAT and Port Forwading
 Put this DNS resolver in every node
