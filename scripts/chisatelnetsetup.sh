@@ -1,9 +1,14 @@
 #!/bin/bash
- apt update && apt install -y telnetd openbsd-inetd
- echo "telnet stream tcp nowait root /usr/sbin/tcpd /usr/sbin/telnetd" >> /etc/inetd.conf
- useradd -m -s /bin/bash phantom_user
-  echo "phantom_user:wired_ghost" | chpasswd
+apt update && apt install -y telnetd openbsd-inetd
+
+echo "telnet stream tcp nowait root /usr/sbin/tcpd /usr/sbin/telnetd" >> /etc/inetd.conf
+echo "inetd.conf done."
+
+useradd -m -s /bin/bash phantom_user
+echo "phantom_user:wired_ghost" | chpasswd
+echo "user added."
 
 /etc/init.d/openbsd-inetd start
+echo "telnet service started."
 
 # /etc/init.d/openbsd-inetd stop
