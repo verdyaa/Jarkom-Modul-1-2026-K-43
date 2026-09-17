@@ -391,3 +391,246 @@ cat pub > .ssh/authorized_keys
 ![alt text](./images/pst1.png)
 ![alt text](./images/pst2.png)
 Kredensial pada SSH tidak terlihat seperti pada Telnet karena SSH selalu membangun "lorong" komunikasi yang terenkripsi terlebih dahulu sebelum proses login dilakukan. Melalui fase Key Exchange, klien dan server diam-diam membuat kunci rahasia bersama untuk mengamankan jaringan. Baru setelah lorong enkripsi ini aktif (ditandai dengan pesan New Keys), username dan password kita dikirimkan melewati lorong tersebut, sehingga alat penyadap apa pun hanya akan melihat deretan kode acak yang tidak bisa dibaca, bukan teks asli dari sandi kita.
+
+## step 14: Web Brute-force Analysis (`wired_bruteforce.pcapng`)
+
+**Tujuan:** Menganalisis serangan brute-force pada layanan web, mengidentifikasi IP penyerang, port target, kredensial pengguna `lain_admin` yang berhasil ditembus, serta software server HTTP.
+
+### Langkah Kerja
+
+1. Buka file capture `wired_bruteforce.pcapng` di Wireshark.
+
+2. Filter lalu lintas HTTP POST request untuk melihat upaya login yang dikirim oleh penyerang:
+
+   ```
+   http.request.method == "POST"
+   ```
+
+   ![image](images/no-14.png)
+
+3. Identifikasi IP penyerang dari kolom **Source IP** (`172.26.7.50`) dan port target pada kolom **Destination Port** (TCP port `8080` / `80`).
+
+4. Filter respon server HTTP yang mengindikasikan otentikasi berhasil (status code 200 atau 302):
+
+   ```
+   http.response.code == 200 || http.response.code == 302
+   ```
+
+5. Periksa payload HTTP request yang berpasangan dengan respon sukses tersebut untuk menemukan kombinasi kata sandi akun `lain_admin`.
+
+   ![image](images/no-14-usn.png)
+
+### Hasil Analisis
+* **IP Penyerang:** `172.26.7.50`
+* **Target Port:** `172.26.7.100:8080` (HTTP)
+* **Password `lain_admin`:** `wired_pr0tocol_7`
+* **Server Software:** `Apache/2.4.62`
+
+![image](images/no-14hasil.png)
+
+---
+
+## step 15: USB HID Keystroke Extraction (`wired_usb_hid.pcap`)
+
+**Tujuan:** Menganalisis eksfiltrasi data melalui perangkat USB Human Interface Device (HID), mengidentifikasi deskriptor perangkat, serta merekonstruksi tombol ketikan (*keystroke*).
+
+### Langkah Kerja
+
+1. Buka file capture `wired_usb_hid.pcap` di Wireshark.
+
+2. Tampilkan deskriptor perangkat USB untuk mengidentifikasi atribut perangkat:
+
+   ```
+   usb.bDescriptorType == 1
+   ```
+
+   ![image](images/no-15-IP.png)
+
+3. Catat nilai Vendor ID (`idVendor`), Product ID (`idProduct`), dan Device Address dari struktur deskriptor USB.
+
+   ![image](images/no-15-device.png)
+
+4. Terapkan filter khusus data transfer USB HID untuk mengekstrak byte data ketikan keyboard:
+
+   ```
+   usb.capdata
+   ```
+
+5. Ekstrak nilai `usb.capdata` dan konversikan byte HID keycode menggunakan skrip dekoder USB HID untuk merekonstruksi isi pesan rahasia.
+
+![image](images/no-15-shef.png)
+
+![image](images/no-15pesanrhs.png)
+
+
+### Hasil Analisis
+* **Vendor ID:** `0x046d`
+* **Product ID:** `0xc31c`
+* **Device Address:** `7` 
+* **Pesan Rahasia:** Hasil rekonstruksi karakter dari data byte `usb.capdata`
+
+![image](images/no-15hasil.png)
+
+---
+
+## step 16: FTP File Theft Analysis (`wired_ftp_theft.pcap`)
+
+**Tujuan:** Memeriksa pencurian file melalui protokol FTP tanpa enkripsi, mengidentifikasi IP server, banner aplikasi, kredensial akses, serta ukuran file malware.
+
+### Langkah Kerja
+
+1. Buka file capture `wired_ftp_theft.pcap` di Wireshark.
+
+2. Filter lalu lintas kontrol FTP:
+
+   ```
+   ftp
+   ```
+
+   ![image](/images/no-16-ip.png)
+
+3. Periksa paket awal sambungan untuk mencatat IP server FTP, serta teks banner *welcome message* aplikasi FTP.
+
+4. Amati perintah `USER` dan `PASS` untuk mengekstrak kredensial login penyerang.
+
+5. Filter perintah pengunduhan atau pemeriksaan ukuran file pada FTP:
+
+   ```
+   ftp.request.command == "RETR" || ftp.request.command == "SIZE"
+   ```
+
+6. Buka detail paket respon `213` atau `150` untuk mendapatkan ukuran file payload malware dalam satuan byte.
+
+   ![image](images/no-16-ip2.png)
+
+### Hasil Analisis
+* **IP Server FTP:** `198.51.100.7`
+* **Banner Software:** `vsftpd 3.0.5`
+* **Kredensial FTP:** Username `knights_agent` / Password `N4v1_s3cur3_2026`
+* **Ukuran Malware:** `524288` bytes
+
+---
+
+## step 17: HTTP Command & Control Analysis (`wired_http_c2.pcap`)
+
+**Tujuan:** Menganalisis aktivitas komunikasi HTTP Command & Control (C2), mengidentifikasi domain (Host), IP server penyerang, nama malware, dan kode status HTTP.
+
+### Langkah Kerja
+
+1. Buka file capture `wired_http_c2.pcap` di Wireshark.
+
+2. Filter seluruh permintaan HTTP request:
+
+   ```
+   http.request
+   ```
+
+3. Cari permintaan unduhan file executable (`.exe`) pada daftar paket (Paket No. 30).
+
+4. Buka detail header Hypertext Transfer Protocol pada paket tersebut untuk mencatat isi header `Host:` dan nama file pada baris `GET`.
+
+5. Periksa alamat Destination IP pada paket layer jaringan (IPv4).
+
+6. Buka respon server terkait (Frame 31) untuk memastikan kode status HTTP.
+
+### Hasil Analisis
+* **Nama Domain (Host):** `wired-update.net`
+* **IP Server Penyerang:** `203.0.113.42`
+* **Nama File Malware:** `navi_agent.exe`
+* **Kode Status HTTP:** `200`
+
+    ![image](images/no-17hasil.png)
+
+---
+
+## step 18: SMB Malware Lateral Movement (`wired_smb_transfer.pcapng`)
+
+**Tujuan:** Mengidentifikasi aktivitas penuangan malware melalui protokol jaringan SMB file sharing.
+
+### Langkah Kerja
+
+1. Buka file capture `wired_smb_transfer.pcapng` di Wireshark.
+
+2. Filter lalu lintas SMB versi 2:
+
+   ```
+   smb2
+   ```
+
+3. Cari paket *Tree Connect Request* (Paket No. 12) untuk mengidentifikasi nama share path / folder tujuan transfer.
+
+4. Cari paket *Create Request File* (Paket No. 16) untuk mengidentifikasi nama file executable malware yang dibuat pada sistem korban.
+
+5. Catat IP pengirim (Source IP) dan IP penerima (Destination IP) dari header IP paket request tersebut.
+
+### Hasil Analisis
+* **Nama Protokol:** SMB2
+* **IP Pengirim (Penyerang):** `10.7.3.100`
+* **IP Penerima (Korban):** `10.7.1.50`
+* **Folder Tujuan:** `ADMIN$` (Path: `System32`)
+* **Nama File Malware:** `wired_trojan_payload.exe`
+
+    ![image](images/no-18hasil.png)
+
+---
+
+## step 19: SMTP Extortion Email Analysis (`wired_smtp_threat.pcap`)
+
+**Tujuan:** Menganalisis transmisi email teror/pemerasan tanpa enkripsi melalui protokol SMTP.
+
+### Langkah Kerja
+
+1. Buka file capture `wired_smtp_threat.pcap` di Wireshark.
+
+2. Filter paket SMTP yang mengandung header unik kustom:
+
+   ```
+   smtp contains "MailClientID"
+   ```
+
+3. Klik kanan paket yang ditemukan, lalu pilih **Follow > TCP Stream** untuk membaca seluruh pesan teks transaksi email secara berurutan.
+
+4. Ekstrak data mengenai email korban (`RCPT TO`), klaim kata sandi yang bocor, jenis malware, batas waktu pemerasan, dan nilai `MailClientID`.
+
+### Hasil Analisis
+* **Email Korban:** `victim@protocol7.co.jp`
+* **Password Korban:** `pr0tocol_7_user`
+* **Jenis Malware:** `ransomware`
+* **Batas Waktu:** 3 hari (72 hours)
+* **MailClientID:** `7719980706`
+
+    ![image](images/no-19hasil.png)
+
+---
+
+## step 20: Decrypting Encrypted TLS Traffic (`wired_tls_decrypt.pcapng`)
+
+**Tujuan:** Mendekripsi lalu lintas data HTTPS/TLS yang terenkripsi menggunakan file kunci Pre-Master-Secret log, serta menganalisis atribut HTTP tersembunyi di dalamnya.
+
+### Langkah Kerja
+
+1. Buka file capture `wired_tls_decrypt.pcapng` di Wireshark.
+
+2. Masukkan file keylog dekripsi via menu **Edit > Preferences > Protocols > TLS**.
+
+3. Klik **Browse** pada kolom *(Pre)-Master-Secret log filename*, pilih file `keyslogfile.txt`, lalu klik **OK / Apply**.
+
+4. Filter paket lalu lintas TLS untuk melihat handshake Client Hello:
+
+   ```
+   tls
+   ```
+
+5. Buka detail extension `server_name` pada paket Client Hello untuk mencatat nama domain (SNI) dan IP tujuan.
+
+6. Terapkan filter `http` (atau pilih **Follow > HTTP Stream** pada sesi TLS terdekripsi) untuk membaca detail request line dan header HTTP.
+
+### Hasil Analisis
+* **Versi Protokol TLS:** TLSv1.2
+* **Nama Domain (SNI):** `example.com`
+* **IP Server Penyerang:** `93.184.216.34`
+* **User-Agent:** `curl/7.62.0`
+* **HTTP Method:** `HEAD`
+* **HTTP Path:** `/`
+
+    ![image](images/no-20hasil.png)
