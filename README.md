@@ -266,7 +266,8 @@ Dengan mmenggunakan filter dibawah ini kita dapat membaca transmisi file knights
 ```plaintext
 ftp.request.command contains "STOR" or ftp.response.code == 226 or ftp-data.command
 ```
-![Knightsftp](./images/13.png) 
+![Knightsftp](./images/13.png)
+
 ## Step 9
 ### Soal
 Mika mengakses dokumen Protokol Tujuh di ([link file](https://drive.google.com/drive/folders/1S3hG0dnZBTkCta4uILWwKVc6dSYYGRJ6?usp=sharing)) dari FTP Server Chisa. Dari node Mika, unduh file tersebut menggunakan akun mika. Setelah itu, buktikan pembatasan read-only dengan mencoba mengunggah file baru dari akun mika, dan tunjukkan pesan error respon server (error 550 Permission denied) saat mika mencoba melakukan upload.
@@ -282,6 +283,7 @@ Knights melancarkan uji ketahanan koneksi ke server Chisa untuk menguji latensi 
 
 ### Ping Chisa
 ![pingch](./images/17.png)
+
 ### Analisis Wireshark
 #### ICMP Analysis
 pake filter ```icmp.type contains "reply" and icmp.code``` dan ```icmp.type contains "request" and icmp.code``` 
@@ -298,7 +300,38 @@ kita mendapatkan
 77 packets transmitted, 77 received, 0% packet loss, time 23099ms
 rtt min/avg/max/mdev = 0.366/0.681/1.036/0.125 ms
 ```
+statistics diatas menyatakan jalur layer 2 dan 3 berjalan optimal tanpa terjadi kongesti atau pembuangan paket (drop), serta rata rata deviasi sangat kecil menandakan latensi yang sangat stabil.
+
+## Step 11
+### Soal
+Buktikan kelemahan protokol Telnet dengan membuat akun phantom_user dan password wired_ghost pada layanan telnetd di node Chisa. Lakukan login Telnet dari node Eiri ke node Chisa dan tangkap sesi menggunakan Wireshark. Tunjukkan kredensial plain text melalui fitur Follow TCP Stream, serta jelaskan mengapa setiap karakter terkirim dalam paket TCP terpisah.
+
+### Setup Telnet di Node Chisa
+```bash
+apt update && apt install -y telnetd openbsd-inetd
+
+echo "telnet stream tcp nowait root /usr/sbin/tcpd /usr/sbin/telnetd" >> /etc/inetd.conf
+echo "inetd.conf done."
+
+useradd -m -s /bin/bash phantom_user
+echo "phantom_user:wired_ghost" | chpasswd
+echo "user added."
+
+/etc/init.d/openbsd-inetd start
+echo "telnet service started."
+```
+Shell Script diatas digunakan untuk mensetup service telnet di Chisa serta menambahkan user `phantom_user` dengan password `wired_ghost`
+#### Login Eiri
+![chisatelent](./images/20.png)
+#### Analisis Telnet di Wireshark
+![telnetwr](./images/21.png)
+![22](./images/22.png) 
+![22](./images/23.png) 
+![22](./images/24.png) 
+
 
 ## 14-20 & Flags
 ### Soal 14
-
+```plaintext
+KOMJAR26{FTP_Th3ft_O2caCcZMASnjObd7XvlwpIKOF}
+```
