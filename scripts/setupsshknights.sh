@@ -1,6 +1,5 @@
 #!/bin/bash
 
-nano /etc/ssh/sshd_config
 echo << "EOF" > /etc/ssh/sshd_config
 Include /etc/ssh/sshd_config.d/*.conf
 PasswordAuthentication no

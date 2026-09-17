@@ -328,10 +328,67 @@ Shell Script diatas digunakan untuk mensetup service telnet di Chisa serta menam
 ![22](./images/22.png) 
 ![22](./images/23.png) 
 ![22](./images/24.png) 
+Perilaku setiap karakter dikirim dalam satu paket TCP terpisah pada Telnet terjadi karena cara kerja mode operasi interaktif terminal dan kebutuhan responsivitas real-time. Secara default saat terhubung ke shell interaktif, Telnet menegosiasikan opsi terminal (melalui protokol Telnet NVT / Network Virtual Terminal) ke mode Character-at-a-Time (bukan Line Mode).
+## Step 12
+### Soal
+Alice mencurigai Knights menjalankan beberapa layanan rahasia di node-nya. Lakukan pemindaian port dari node Alice ke node Knights menggunakan Netcat (nc) untuk memeriksa port 22 (SSH) dan 80 (HTTP) dalam keadaan terbuka, serta port rahasia 7777 dalam keadaan tertutup. Analisis di Wireshark perbedaan TCP Flag yang dikembalikan antara port terbuka (SYN-ACK) dengan port tertutup (RST-ACK).
 
-
-## 14-20 & Flags
-### Soal 14
-```plaintext
-KOMJAR26{FTP_Th3ft_O2caCcZMASnjObd7XvlwpIKOF}
+### Mengaktifkan Service SSH dan HTTP pada Knights
+```bash
+service ssh start 
+service nginx start 
 ```
+### Tesing Ports
+#### Netcat Knights
+![nck](./images/25.png)
+disini kita melihat bahwa kita bisa mendapat respon dari port 22 dan 80, tetapi ditolak ketika meminta port 7777
+#### Analisis Perbedaan di Wireshark
+![rst](./images/26.png) 
+Perbedaan utamanya terletak pada status port tujuan: **`[SYN, ACK]`** dikirim oleh port yang berstatus **terbuka** (*listening*) sebagai respons persetujuan untuk melanjutkan proses *3-way handshake* pembentukan koneksi (seperti port 22 dan 80 yang berhasil terhubung), sedangkan **`[RST, ACK]`** dikirim oleh sistem ketika port tujuan berstatus **tertutup** (*closed*) untuk menolak permintaan koneksi seketika tanpa membuka sesi komunikasi, yang memicu munculnya pesan *Connection refused* pada port 7777.
+
+## step 13 
+### Soal
+Lain memerintahkan agar administrasi jarak jauh menggunakan SSH secara aman tanpa password. Install OpenSSH server pada node Knights, buat pasangan kunci SSH (ssh-keygen) pada node Mika untuk user mika_admin, dan konfigurasikan public key authentication (PasswordAuthentication no). Lakukan koneksi SSH dari node Mika ke node Knights, tangkap sesi menggunakan Wireshark, identifikasi paket Protocol Version Exchange dan Key Exchange, serta jelaskan mengapa kredensial tidak terlihat dalam bentuk teks terbuka seperti pada Telnet.
+### SSH Setup
+#### Setup SSH Chisa
+```bash
+ssh-keygen -C "mika_admin"
+echo "ssh key generated"
+cat .ssh/id_ed25519.pub #ini bisa di copy untuk setup Knights
+```
+Bash command diatas digunakan untuk generate keygen bernama `mika_admin`
+![mika_admin](./images/28.png) 
+#### Setup SSH Knights
+Buat sebuah file di Knights yang memiliki public key dari Node Chisa tadi:
+```bash
+echo "KEY" > pub #ganti KEY ke kunci SSH kalian
+```
+Setelah itu kalian bisa menjalankan shell script untuk mensetup ssh di Knights:
+```bash
+#!/bin/bash
+
+echo << "EOF" > /etc/ssh/sshd_config
+Include /etc/ssh/sshd_config.d/*.conf
+PasswordAuthentication no #penting
+KbdInteractiveAuthentication no
+UsePAM yes
+X11Forwarding yes
+PrintMotd no
+AcceptEnv LANG LC_* COLORTERM NO_COLOR
+Subsystem	sftp	/usr/lib/openssh/sftp-server
+EOF
+
+cat /etc/ssh/sshd_config
+echo "Configured"
+
+cat pub > .ssh/authorized_keys
+```
+![alt text](./images/30.png) 
+### Running SSH And Analyzing It
+![alt text](./images/29.png) 
+#### Identifikasi paket Protocol Version Exchange dan Key Exchange
+![alt text](./images/pst.png) 
+![alt text](./images/pst1.png)
+![alt text](./images/pst2.png)
+Kredensial pada SSH tidak terlihat seperti pada Telnet karena SSH selalu membangun "lorong" komunikasi yang terenkripsi terlebih dahulu sebelum proses login dilakukan. Melalui fase Key Exchange, klien dan server diam-diam membuat kunci rahasia bersama untuk mengamankan jaringan. Baru setelah lorong enkripsi ini aktif (ditandai dengan pesan New Keys), username dan password kita dikirimkan melewati lorong tersebut, sehingga alat penyadap apa pun hanya akan melihat deretan kode acak yang tidak bisa dibaca, bukan teks asli dari sandi kita.
+
